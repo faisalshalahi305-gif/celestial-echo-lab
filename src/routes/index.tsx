@@ -84,24 +84,24 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
 }) {
   const last = useRef<Sel>({ block: null, section: null, cell: null });
   const clip = useRef<string | null>(null);
-  const [tab, setTab] = useState<"text" | "add" | "history" | "tools">("add");
-  const [pos, setPos] = useState<{ top: number } | null>(null);
+  const [tab, setTab] = useState<"text" | "add" | "order" | "table" | "history" | "tools">("add");
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [inTable, setInTable] = useState(false);
-  const [scope, setScope] = useState<"block" | "section">("block");
-  const [copied, setCopied] = useState(false);
-  const [hasClip, setHasClip] = useState(false);
   const hideKeyboard = () => { (document.activeElement as HTMLElement | null)?.blur(); getSelection()?.removeAllRanges(); };
   const barRef = useRef<HTMLDivElement>(null);
   const vvTop = useRef(0);
   const [vvH, setVvH] = useState(0);
   const raf = useRef(0);
 
-  // Action bar docks to the bottom of the visible screen (above the keyboard) while something is selected.
   const placeNow = () => {
-    const b = last.current.block ?? last.current.section;
+    const b = last.current.block;
     if (!b || !b.isConnected) return setPos(null);
-    const h = window.visualViewport?.height ?? innerHeight;
-    setPos({ top: vvTop.current + h - (last.current.cell ? 128 : 84) });
+    const r = b.getBoundingClientRect();
+    const barH = barRef.current?.offsetHeight ?? 110;
+    const top = vvTop.current + barH + 6;
+    const bottom = vvTop.current + (window.visualViewport?.height ?? innerHeight) - 50;
+    if (r.bottom < top || r.top - 46 > bottom) return setPos(null);
+    setPos({ top: Math.min(bottom, Math.max(top, r.top - 46)), left: Math.max(8, Math.min(r.left, innerWidth - 230)) });
   };
   const place = () => { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(placeNow); };
 
@@ -195,9 +195,9 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
     const k = kind(el); el.remove(); last.current[what] = null; if (what === "section") last.current.block = null;
     setPos(null); commit(`حذف ${k}`);
   };
-  const copy = (what: "block" | "section") => { const el = need(what); if (!el) return; clip.current = clean(el.outerHTML); setHasClip(true); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const copy = (what: "block" | "section") => { const el = need(what); if (!el) return; clip.current = clean(el.outerHTML); alert(`تم نسخ ال${kind(el)} ✓ — اضغط مكان ثاني ثم «لصق»`); };
   const paste = () => {
-    if (!clip.current) return;
+    if (!clip.current) return alert("ما نسخت شي بعد");
     const isSec = clip.current.startsWith("<section");
     const node = insertNode(clip.current, isSec); if (!isSec) select(node);
     commit("لصق");
@@ -234,7 +234,7 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
     <button onMouseDown={(e) => e.preventDefault()} onClick={on}
       className={`shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-sm font-bold active:bg-primary active:text-primary-foreground ${cls}`}>{t}</button>
   );
-  const tabs = [["add", "إضافة"], ["text", "النص"], ["history", "السجل"], ["tools", "أدوات"]] as const;
+  const tabs = [["add", "إضافة"], ["text", "النص"], ["order", "ترتيب"], ["table", "جدول"], ["history", "السجل"], ["tools", "أدوات"]] as const;
   const fmt = (t: number) => new Date(t).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   return (
@@ -259,10 +259,27 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
             <B t="عريض" on={() => cmd("bold", "تنسيق عريض")} />
             <B t="تسطير" on={() => cmd("underline", "تسطير")} />
             <B t="تكبير" on={() => cmd("fontSize", "تكبير الخط", "6")} />
+            <B t="حجم عادي" on={() => cmd("fontSize", "حجم عادي", "3")} />
             {["#ffffff", "#7dd3fc", "#facc15", "#f87171", "#86efac"].map((c) => (
               <button key={c} aria-label="لون" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("foreColor", "تغيير اللون", c)} style={{ background: c }} className="h-9 w-9 shrink-0 rounded-full border-2 border-border" />
             ))}
             <B t="مسح التنسيق" on={() => cmd("removeFormat", "مسح التنسيق")} />
+          </>}
+          {tab === "order" && <>
+            <B t="📄 نسخ العنصر" on={() => copy("block")} />
+            <B t="📌 لصق" on={paste} />
+            <B t="⬆ القسم" on={() => move(-1, "section")} />
+            <B t="⬇ القسم" on={() => move(1, "section")} />
+            <B t="📋 تكرار القسم" on={() => dup("section")} />
+            <B t="📄 نسخ القسم" on={() => copy("section")} />
+            <B t="🗑 القسم" on={() => del("section")} />
+          </>}
+          {tab === "table" && <>
+            <B t="➕ جدول جديد" on={() => insert("table")} />
+            <B t="➕ صف" on={() => table("row+")} />
+            <B t="➖ صف" on={() => table("row-")} />
+            <B t="➕ عمود" on={() => table("col+")} />
+            <B t="➖ عمود" on={() => table("col-")} />
           </>}
           {tab === "history" && (
             <div className="flex w-full flex-col gap-1 overflow-y-auto">
@@ -276,35 +293,21 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
             </div>
           )}
           {tab === "tools" && <>
+            <B t="📖 الشرح" on={() => { done(); location.href = "/guide"; }} />
             <B t="💾 تنزيل نسخة" on={backup} />
             <B t="📂 فتح نسخة" on={restore} />
             <B t="🖨 PDF" on={() => window.print()} />
             <B t="🧹 مسح كل المحتوى" on={clearAll} cls="border-destructive text-destructive" />
+            <B t="الأصل" on={() => { if (confirm("إرجاع الدرس الأصلي؟ (يبقى في السجل)")) { commit("قبل إرجاع الأصل"); localStorage.removeItem(KEY); location.reload(); } }} />
           </>}
         </div>
       </div>
       {pos && (
-        <div style={{ top: pos.top }} className="fixed inset-x-0 z-40 border-t border-border bg-card px-2 py-2 shadow-2xl print:hidden">
-          <div className="mb-1.5 flex items-center justify-center gap-1 text-xs font-bold">
-            {(["block", "section"] as const).map((w) => (
-              <button key={w} onMouseDown={(e) => e.preventDefault()} onClick={() => setScope(w)}
-                className={`rounded-full px-3 py-1 ${scope === w ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>{w === "block" ? "هذا العنصر" : "القسم كامل"}</button>
-            ))}
-          </div>
-          <div className="grid grid-cols-6 gap-1">
-            {([["⬆️", "فوق", () => move(-1, scope)], ["⬇️", "تحت", () => move(1, scope)], ["📋", "تكرار", () => dup(scope)], ["📄", copied ? "نُسخ ✓" : "نسخ", () => copy(scope)], ["📌", "لصق", paste], ["🗑️", "حذف", () => del(scope)]] as const).map(([i, l, on]) => (
-              <button key={i} onMouseDown={(e) => e.preventDefault()} onClick={on} disabled={i === "📌" && !hasClip}
-                className={`flex flex-col items-center rounded-lg py-1.5 text-lg active:bg-primary disabled:opacity-30 ${i === "🗑️" ? "text-destructive" : ""}`}>
-                {i}<span className="text-[11px] font-bold">{l}</span>
-              </button>
-            ))}
-          </div>
-          {inTable && scope === "block" && (
-            <div className="mt-1.5 grid grid-cols-4 gap-1">
-              <B t="➕ صف" on={() => table("row+")} /><B t="➖ صف" on={() => table("row-")} />
-              <B t="➕ عمود" on={() => table("col+")} /><B t="➖ عمود" on={() => table("col-")} />
-            </div>
-          )}
+        <div style={{ top: pos.top, left: pos.left }} className="fixed z-40 flex gap-1 rounded-xl border border-border bg-card p-1 shadow-2xl print:hidden">
+          {([["⬆️", () => move(-1, "block"), "تحريك لأعلى"], ["⬇️", () => move(1, "block"), "تحريك لأسفل"], ["📋", () => dup("block"), "تكرار"], ["📄", () => copy("block"), "نسخ"], ["🗑️", () => del("block"), "حذف"]] as const).map(([t, on, l]) => (
+            <button key={l} aria-label={l} title={l} onMouseDown={(e) => e.preventDefault()} onClick={on} className="rounded-lg px-2 py-1.5 text-lg active:bg-primary">{t}</button>
+          ))}
+          {inTable && <button onMouseDown={(e) => e.preventDefault()} onClick={() => setTab("table")} className="rounded-lg px-2 text-sm font-bold text-primary">جدول</button>}
         </div>
       )}
     </>
@@ -454,7 +457,7 @@ function Lesson() {
           e.target.value = "";
         }}
       />
-      <div ref={ref} suppressContentEditableWarning className={editing ? "pt-28 pb-44" : ""}>
+      <div ref={ref} suppressContentEditableWarning className={editing ? "pt-28" : ""}>
         <Content />
       </div>
     </>
