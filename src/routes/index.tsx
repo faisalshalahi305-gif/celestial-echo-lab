@@ -419,11 +419,15 @@ function Lesson() {
       else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); goTo(histRef.current.i + 1); }
     };
     const onUnload = () => { flush(); saveNow(); };
+    // Leaving the app/tab: save and close the keyboard so it doesn't stay stuck on screen.
+    const onHide = () => { if (document.visibilityState === "hidden") { flush(); saveNow(); (document.activeElement as HTMLElement | null)?.blur(); } };
     el.addEventListener("click", onClick);
     el.addEventListener("input", onInput);
     addEventListener("keydown", onKey);
     addEventListener("beforeunload", onUnload);
-    return () => { el.removeEventListener("click", onClick); el.removeEventListener("input", onInput); removeEventListener("keydown", onKey); removeEventListener("beforeunload", onUnload); };
+    addEventListener("pagehide", onUnload);
+    document.addEventListener("visibilitychange", onHide);
+    return () => { el.removeEventListener("click", onClick); el.removeEventListener("input", onInput); removeEventListener("keydown", onKey); removeEventListener("beforeunload", onUnload); removeEventListener("pagehide", onUnload); document.removeEventListener("visibilitychange", onHide); };
   }, []);
 
   const toggle = () => {
@@ -432,7 +436,7 @@ function Lesson() {
     setEditing(next);
     ref.current!.contentEditable = next ? "true" : "false";
     ref.current!.classList.toggle("editing", next);
-    if (!next) { flush(); saveNow(); }
+    if (!next) { flush(); saveNow(); (document.activeElement as HTMLElement | null)?.blur(); getSelection()?.removeAllRanges(); }
   };
 
   return (
