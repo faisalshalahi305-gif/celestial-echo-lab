@@ -71,15 +71,15 @@ function Guide() {
         <Item btn={<Btn>سؤال وجواب</Btn>} what="سؤال والإجابة مخفية تظهر بزر." preview={<div className="flex justify-between rounded-lg border border-border p-2"><b>اكتب السؤال هنا؟</b><span className="rounded bg-primary px-3 text-primary-foreground">الإجابة</span></div>} />
         <Item btn={<Btn>معادلة</Btn>} what="مربع كبير للمعادلات." preview={<div dir="ltr" className="rounded-lg border-2 border-primary bg-accent py-2 text-center font-mono text-xl font-bold text-accent-foreground">F = m · a</div>} />
         <Item btn={<Btn>قائمة</Btn>} what="نقاط مرتبة." preview={<ul className="list-disc pr-6"><li>نقطة أولى</li><li>نقطة ثانية</li></ul>} />
-        <Item btn={<Btn>صورة / صورة مع شرح</Btn>} what="يفتح لك اختيار صورة من جهازك. اضغط على أي صورة لاحقاً لتغييرها." />
-        <Item btn={<Btn>قسم جديد</Btn>} what="قسم كامل بعنوان ورقم، ينضاف بعد القسم الحالي." />
+        <Item btn={<Btn>صورة / صورة مع شرح</Btn>} what="يفتح لك اختيار صورة من جهازك. اضغط على أي صورة لاحقاً لتغييرها." preview={<div><div className="flex h-24 items-center justify-center rounded-xl bg-muted text-3xl">🖼️</div><p className="mt-1 text-center text-muted-foreground">شرح الصورة هنا</p></div>} />
+        <Item btn={<Btn>قسم جديد</Btn>} what="قسم كامل بعنوان ورقم، ينضاف بعد القسم الحالي." preview={<div className="rounded-xl border border-border bg-card p-3"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">٧</span><b className="text-lg">عنوان القسم</b></div><p className="mt-2">محتوى القسم…</p></div>} />
       </Part>
 
       <Part title="تبويب «النص»">
-        <Item btn={<Btn>عريض / تسطير</Btn>} what="ظلّل الكلام ثم اضغط." />
-        <Item btn={<Btn>تكبير / حجم عادي</Btn>} what="يكبّر الكلام المظلل أو يرجعه طبيعي." />
-        <Item btn={<span className="flex gap-1">{["#ffffff", "#7dd3fc", "#facc15", "#f87171", "#86efac"].map((c) => <span key={c} style={{ background: c }} className="h-7 w-7 rounded-full border-2 border-border" />)}</span>} what="ألوان للكلام المظلل." />
-        <Item btn={<Btn>مسح التنسيق</Btn>} what="يشيل كل التنسيقات عن الكلام المظلل." />
+        <Item btn={<Btn>عريض / تسطير</Btn>} what="ظلّل الكلام ثم اضغط." preview={<p>كلام <b>عريض</b> وكلام <u>مسطّر</u></p>} />
+        <Item btn={<Btn>تكبير / حجم عادي</Btn>} what="يكبّر الكلام المظلل أو يرجعه طبيعي." preview={<p>عادي <span className="text-3xl font-bold">كبير</span></p>} />
+        <Item btn={<span className="flex gap-1">{["#ffffff", "#7dd3fc", "#facc15", "#f87171", "#86efac"].map((c) => <span key={c} style={{ background: c }} className="h-7 w-7 rounded-full border-2 border-border" />)}</span>} what="ألوان للكلام المظلل." preview={<p>{[["#ffffff", "أبيض"], ["#7dd3fc", "أزرق"], ["#facc15", "أصفر"], ["#f87171", "أحمر"], ["#86efac", "أخضر"]].map(([c, n]) => <span key={c} style={{ color: c }} className="ml-3 font-bold">{n}</span>)}</p>} />
+        <Item btn={<Btn>مسح التنسيق</Btn>} what="يشيل كل التنسيقات عن الكلام المظلل." preview={<p><span className="font-bold text-destructive underline">قبل</span> ← <span>بعد</span></p>} />
       </Part>
 
       <Part title="تبويب «ترتيب»">

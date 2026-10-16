@@ -250,6 +250,7 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => goTo(hist.i - 1)} disabled={hist.i <= 0} aria-label="تراجع" className="px-1 text-xl disabled:opacity-30">↶</button>
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => goTo(hist.i + 1)} disabled={hist.i >= hist.list.length - 1} aria-label="إعادة" className="px-1 text-xl disabled:opacity-30">↷</button>
           {kbOpen && <button onMouseDown={(e) => e.preventDefault()} onClick={hideKeyboard} aria-label="إخفاء الكيبورد" className="px-1 text-xl">⌨️</button>}
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => { hideKeyboard(); done(); location.href = "/guide"; }} aria-label="شرح الأدوات" className="whitespace-nowrap rounded-lg border border-primary px-2 py-2 text-sm font-bold text-primary">📖 شرح</button>
           <button onClick={() => { hideKeyboard(); done(); }} className="whitespace-nowrap rounded-lg bg-success px-3 py-2 text-sm font-bold text-success-foreground">✓ حفظ</button>
         </div>
         <div style={{ maxHeight: vvH ? Math.round(vvH * (kbOpen ? 0.3 : 0.45)) : undefined }} className="flex max-h-[45vh] gap-2 overflow-x-auto overscroll-contain px-2 py-2">
