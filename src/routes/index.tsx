@@ -454,7 +454,7 @@ function Lesson() {
           e.target.value = "";
         }}
       />
-      <div ref={ref} suppressContentEditableWarning className={editing ? "pt-28" : ""}>
+      <div ref={ref} suppressContentEditableWarning className={editing ? "pt-28 pb-44" : ""}>
         <Content />
       </div>
     </>
