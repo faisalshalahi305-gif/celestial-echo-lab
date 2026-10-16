@@ -88,13 +88,43 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [inTable, setInTable] = useState(false);
   const hideKeyboard = () => { (document.activeElement as HTMLElement | null)?.blur(); getSelection()?.removeAllRanges(); };
+  const barRef = useRef<HTMLDivElement>(null);
+  const vvTop = useRef(0);
+  const [vvH, setVvH] = useState(0);
+  const raf = useRef(0);
 
-  const place = () => {
+  const placeNow = () => {
     const b = last.current.block;
     if (!b || !b.isConnected) return setPos(null);
     const r = b.getBoundingClientRect();
-    setPos({ top: Math.max(110, r.top - 46), left: Math.max(8, Math.min(r.left, innerWidth - 230)) });
+    const barH = barRef.current?.offsetHeight ?? 110;
+    const top = vvTop.current + barH + 6;
+    const bottom = vvTop.current + (window.visualViewport?.height ?? innerHeight) - 50;
+    if (r.bottom < top || r.top - 46 > bottom) return setPos(null);
+    setPos({ top: Math.min(bottom, Math.max(top, r.top - 46)), left: Math.max(8, Math.min(r.left, innerWidth - 230)) });
   };
+  const place = () => { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(placeNow); };
+
+  // Keep the toolbar glued to the visible screen area, even while the phone keyboard is open.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let f = 0;
+    const sync = () => {
+      cancelAnimationFrame(f);
+      f = requestAnimationFrame(() => {
+        vvTop.current = Math.max(0, vv.offsetTop);
+        if (barRef.current) barRef.current.style.transform = `translate3d(0, ${vvTop.current}px, 0)`;
+        setVvH(vv.height);
+        placeNow();
+      });
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => { cancelAnimationFrame(f); vv.removeEventListener("resize", sync); vv.removeEventListener("scroll", sync); };
+  }, []);
+  const kbOpen = vvH > 0 && vvH < innerHeight - 120;
   const select = (nb: HTMLElement | null) => {
     if (nb !== last.current.block) { last.current.block?.classList.remove("is-sel"); nb?.classList.add("is-sel"); last.current.block = nb; }
     place();
@@ -209,7 +239,7 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-border bg-card shadow-2xl print:hidden">
+      <div ref={barRef} className="fixed inset-x-0 top-0 z-50 border-b border-border bg-card shadow-2xl will-change-transform print:hidden">
         <div className="flex items-center gap-1 border-b border-border px-2 pt-2">
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
           {tabs.map(([k, l]) => (
@@ -219,9 +249,10 @@ function Toolbar({ root, commit, hist, goTo, pickImage, done }: {
           </div>
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => goTo(hist.i - 1)} disabled={hist.i <= 0} aria-label="تراجع" className="px-1 text-xl disabled:opacity-30">↶</button>
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => goTo(hist.i + 1)} disabled={hist.i >= hist.list.length - 1} aria-label="إعادة" className="px-1 text-xl disabled:opacity-30">↷</button>
-          <button onClick={done} className="whitespace-nowrap rounded-lg bg-success px-3 py-2 text-sm font-bold text-success-foreground">✓ حفظ</button>
+          {kbOpen && <button onMouseDown={(e) => e.preventDefault()} onClick={hideKeyboard} aria-label="إخفاء الكيبورد" className="px-1 text-xl">⌨️</button>}
+          <button onClick={() => { hideKeyboard(); done(); }} className="whitespace-nowrap rounded-lg bg-success px-3 py-2 text-sm font-bold text-success-foreground">✓ حفظ</button>
         </div>
-        <div className="flex max-h-[45vh] gap-2 overflow-x-auto px-2 py-2">
+        <div style={{ maxHeight: vvH ? Math.round(vvH * (kbOpen ? 0.3 : 0.45)) : undefined }} className="flex max-h-[45vh] gap-2 overflow-x-auto overscroll-contain px-2 py-2">
           {tab === "add" && Object.keys(TPL).map((k) => <B key={k} t={TPL[k]!.name} on={() => insert(k)} />)}
           {tab === "text" && <>
             <B t="عريض" on={() => cmd("bold", "تنسيق عريض")} />
